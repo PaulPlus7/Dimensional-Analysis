@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dimensional Analysis Simulator</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+        h1, h2, h3 { margin-top: 0; }
+        
+        /* Layout */
+        .main-panel { flex: 3; background: var(--surface); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .side-panel { flex: 1; background: var(--surface); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        
+        /* Controls */
+        select { width: 100%; padding: 10px; font-size: 16px; margin-bottom: 20px; border-radius: 4px; border: 1px solid var(--border); }
+        
+        /* Toolbar */
+        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; background: #f1f5f9; padding: 10px; border-radius: 8px; flex-wrap: wrap;}
+        .token { 
+            padding: 10px 15px; background: var(--primary); color: white; font-weight: bold; 
+            border-radius: 4px; cursor: pointer; user-select: none; border: none;
+            transition: transform 0.1s;
+        }
+        .token:active { transform: scale(0.95); }
+        .token.operator { background: #475569; }
+
+        /* Builder Area */
+        .builder-area {
+            min-height: 150px; border: 2px dashed #94a3b8; border-radius: 8px; 
+            padding: 20px; display: flex; align-items: center; justify-content: center;
+            font-size: 24px; gap: 5px; flex-wrap: wrap; background: #f8fafc;
+        }
+        .builder-hint { color: #94a3b8; font-size: 18px; pointer-events: none; }
+        
+        /* Math Elements */
+        .math-item { display: inline-flex; align-items: center; background: white; padding: 5px; border: 1px solid var(--border); border-radius: 4px; }
+        .fraction { display: inline-flex; flex-direction: column; align-items: center; margin: 0 5px; vertical-align: middle; }
+        .fraction-top { border-bottom: 2px solid var(--text); padding: 5px; min-width: 40px; text-align: center; min-height: 25px; outline: none;}
+        .fraction-bottom { padding: 5px; min-width: 40px; text-align: center; min-height: 25px; outline: none; }
+        .exponent-box { width: 35px; height: 25px; font-size: 16px; margin-bottom: 15px; margin-left: 2px; text-align: center; border: 1px solid var(--primary); background: #eff6ff;}
+
+        /* Actions */
+        .actions { margin-top: 20px; display: flex; gap: 10px; }
+        .btn { padding: 10px 20px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white;}
+        .btn-check { background: var(--success); }
+        .btn-clear { background: var(--danger); }
+
+        /* Feedback Panel */
+        .feedback { margin-top: 20px; padding: 15px; border-radius: 4px; display: none; }
+        .feedback.correct { display: block; background: #dcfce7; border: 1px solid var(--success); color: #166534; }
+        .feedback.incorrect { display: block; background: #fee2e2; border: 1px solid var(--danger); color: #991b1b; }
+        .breakdown { margin-top: 10px; font-family: monospace; background: rgba(255,255,255,0.5); padding: 10px; border-radius: 4px;}
+        .show-answer { font-size: 14px; color: var(--primary); cursor: pointer; text-decoration: underline; margin-top: 10px; display: inline-block;}
+
+        /* Scoreboard */
+        .score-list { list-style: none; padding: 0; }
+        .score-list li { padding: 8px; margin-bottom: 5px; border-radius: 4px; font-size: 14px;}
+        .score-correct { background: #dcfce7; color: #166534; }
+        .score-incorrect { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+
+    <div class="main-panel">
+        <h1>Dimensional Analysis Simulator</h1>
+        <p>Select a physics formula, then build its dimensional equation using the toolbar.</p>
+
+        <!-- Dropdown for Formulas -->
+        <select id="formulaSelect">
+            <option value="" disabled selected>Select a Physics Formula...</option>
+            <!-- Formulas injected via JS -->
+        </select>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="token" onclick="addBase('M')">M (Mass)</button>
+            <button class="token" onclick="addBase('L')">L (Length)</button>
+            <button class="token" onclick="addBase('T')">T (Time)</button>
+            <button class="token" onclick="addBase('I')">I (Current)</button>
+            <button class="token" onclick="addBase('K')">K (Temp)</button>
+            <button class="token" style="background: #0891b2;" onclick="addBase('1')">1 (None)</button>
+            <button class="token operator" onclick="addOperator('*')">*</button>
+            <button class="token operator" onclick="addExponent()">^ [Power]</button>
+            <button class="token operator" onclick="addFraction()">/ [Fraction]</button>
+        </div>
+
+        <!-- Interactive Builder -->
+        <div class="builder-area" id="builderArea">
+            <span class="builder-hint">Click tokens above to start building...</span>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-check" onclick="checkAnswer()">Check Answer</button>
+            <button class="btn btn-clear" onclick="clearBuilder()">Clear</button>
+        </div>
+
+        <!-- Feedback Area -->
+        <div id="feedbackPanel" class="feedback">
+            <h3 id="feedbackStatus"></h3>
+            <div id="feedbackBreakdown" class="breakdown" style="display: none;"></div>
+            <a id="showAnswerBtn" class="show-answer" style="display: none;" onclick="showBreakdown()">Wish to see the answer?</a>
+        </div>
+    </div>
+
+    <!-- Score Panel -->
+    <div class="side-panel">
+        <h2>Scoreboard</h2>
+        <p>Attempts: <span id="totalAttempts">0</span></p>
+        <ul id="scoreList" class="score-list">
+            <!-- Scores injected here -->
+        </ul>
+    </div>
+
+    <script>
+        const physicsFormulas = [
+            { id: "area", name: "Area", answer: "L^2", breakdown: "Length (L) × Width (L) = L^2" },
+            { id: "velocity", name: "Velocity", answer: "L*T^-1", breakdown: "Distance (L) / Time (T) = L * T^-1" },
+            { id: "acceleration", name: "Acceleration", answer: "L*T^-2", breakdown: "Velocity (L*T^-1) / Time (T) = L * T^-2" },
+            { id: "force", name: "Force", answer: "M*L*T^-2", breakdown: "Mass (M) × Acceleration (L*T^-2) = M * L * T^-2" },
+            { id: "energy", name: "Kinetic Energy", answer: "M*L^2*T^-2", breakdown: "1/2 (dimensionless) × Mass (M) × [Velocity (L*T^-1)]^2 = M * L^2 * T^-2" },
+            { id: "charge", name: "Electric Charge", answer: "I*T", breakdown: "Current (I) × Time (T) = I * T" },
+            { id: "momentum", name: "Momentum", answer: "M*L*T^-1", breakdown: "Mass (M) × Velocity (L*T^-1) = M * L * T^-1" },
+            { id: "pressure", name: "Pressure", answer: "M*L^-1*T^-2", breakdown: "Force (M*L*T^-2) / Area (L^2) = M * L^-1 * T^-2" },
+            { id: "power", name: "Power", answer: "M*L^2*T^-3", breakdown: "Work (M*L^2*T^-2) / Time (T) = M * L^2 * T^-3" },
+            { id: "density", name: "Density", answer: "M*L^-3", breakdown: "Mass (M) / Volume (L^3) = M * L^-3" },
+            { id: "frequency", name: "Frequency", answer: "T^-1", breakdown: "1 (Dimensionless) / Time (T) = T^-1" },
+            { id: "voltage", name: "Electric Voltage", answer: "M*L^2*T^-3*I^-1", breakdown: "Work (M*L^2*T^-2) / Charge (I*T) = M * L^2 * T^-3 * I^-1" },
+            { id: "resistance", name: "Electric Resistance", answer: "M*L^2*T^-3*I^-2", breakdown: "Voltage (M*L^2*T^-3*I^-1) / Current (I) = M * L^2 * T^-3 * I^-2" },
+            { id: "specific_heat", name: "Specific Heat Capacity", answer: "L^2*T^-2*K^-1", breakdown: "Energy (M*L^2*T^-2) / [Mass (M) × Temp (K)] = L^2 * T^-2 * K^-1" },
+            { id: "gravitational_constant", name: "Gravitational Constant", answer: "M^-1*L^3*T^-2", breakdown: "[Force (M*L*T^-2) × Distance^2 (L^2)] / Mass^2 (M^2) = M^-1 * L^3 * T^-2" },
+            { id: "surface_tension", name: "Surface Tension", answer: "M*T^-2", breakdown: "Force (M*L*T^-2) / Length (L) = M * T^-2" },
+            { id: "angular_velocity", name: "Angular Velocity", answer: "T^-1", breakdown: "Angle (Dimensionless) / Time (T) = T^-1" },
+            { id: "dynamic_viscosity", name: "Dynamic Viscosity", answer: "M*L^-1*T^-1", breakdown: "Pressure (M*L^-1*T^-2) / Velocity gradient (T^-1) = M * L^-1 * T^-1" },
+            { id: "spring_constant", name: "Spring Constant", answer: "M*T^-2", breakdown: "Force (M*L*T^-2) / Length (L) = M * T^-2" },
+            { id: "magnetic_field", name: "Magnetic Field (B)", answer: "M*T^-2*I^-1", breakdown: "Force (M*L*T^-2) / [Current (I) × Length (L)] = M * T^-2 * I^-1" },
+            { id: "strain", name: "Strain", answer: "1", breakdown: "Length (L) / Length (L) = 1 (Dimensionless. Bases cancel out completely)" },
+            { id: "reynolds_number", name: "Reynolds Number", answer: "1", breakdown: "[Density (M*L^-3) × Velocity (L*T^-1) × Length (L)] / Viscosity (M*L^-1*T^-1) = 1 (Dimensionless)" },
+            { id: "mach_number", name: "Mach Number", answer: "1", breakdown: "Velocity (L*T^-1) / Velocity (L*T^-1) = 1 (Dimensionless ratio)" },
+            { id: "friction_coefficient", name: "Coefficient of Friction", answer: "1", breakdown: "Force (M*L*T^-2) / Force (M*L*T^-2) = 1 (Dimensionless)" },
+            { id: "refractive_index", name: "Refractive Index", answer: "1", breakdown: "Velocity (L*T^-1) / Velocity (L*T^-1) = 1 (Dimensionless)" },
+            { id: "specific_gravity", name: "Specific Gravity", answer: "1", breakdown: "Density (M*L^-3) / Density (M*L^-3) = 1 (Dimensionless)" }
+        ];
+
+        // Initialize Dropdown
+        const select = document.getElementById('formulaSelect');
+        physicsFormulas.forEach((form, index) => {
+            const opt = document.createElement('option');
+            opt.value = index;
+            opt.textContent = form.name;
+            select.appendChild(opt);
+        });
+
+        select.addEventListener('change', () => {
+            clearBuilder();
+            hideFeedback();
+        });
+
+        // Builder Logic
+        const builderArea = document.getElementById('builderArea');
+
+        function removeHint() {
+            const hint = document.querySelector('.builder-hint');
+            if (hint) hint.remove();
+        }
+
+        function addBase(symbol) {
+            removeHint();
+            const el = document.createElement('div');
+            el.className = 'math-item';
+            el.innerHTML = `<span>${symbol}</span>`;
+            builderArea.appendChild(el);
+        }
+
+        function addOperator(op) {
+            removeHint();
+            const el = document.createElement('div');
+            el.className = 'math-item';
+            el.style.border = 'none';
+            el.innerHTML = `<strong>${op}</strong>`;
+            builderArea.appendChild(el);
+        }
+
+        function addExponent() {
+            removeHint();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'exponent-box';
+            input.title = "Input power value (e.g., 2 or -1)";
+            builderArea.appendChild(input);
+            input.focus();
+        }
+
+        function addFraction() {
+            removeHint();
+            const frac = document.createElement('div');
+            frac.className = 'fraction';
+            frac.innerHTML = `
+                <div class="fraction-top" contenteditable="true"></div>
+                <div class="fraction-bottom" contenteditable="true"></div>
+            `;
+            builderArea.appendChild(frac);
+        }
+
+        function clearBuilder() {
+            builderArea.innerHTML = '<span class="builder-hint">Click tokens above to start building...</span>';
+            hideFeedback();
+        }
+
+        // Extracts the visual builder content into a single parseable string
+        function parseBuilderContent() {
+            let resultStr = "";
+            const nodes = builderArea.childNodes;
+            
+            nodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) return;
+                
+                if (node.classList.contains('math-item')) {
+                    resultStr += node.innerText;
+                } else if (node.classList.contains('exponent-box')) {
+                    resultStr += "^" + node.value.trim();
+                } else if (node.classList.contains('fraction')) {
+                    const top = node.querySelector('.fraction-top').innerText.trim() || "1";
+                    const bot = node.querySelector('.fraction-bottom').innerText.trim() || "1";
+                    resultStr += `(${top})/(${bot})`; 
+                }
+            });
+            return resultStr;
+        }
+
+        // Robust Evaluator: Counts the net exponents of M, L, T, I, K
+        function getPowers(str) {
+            str = str.replace(/\s+/g, '').toUpperCase();
+            
+            let numStr = str;
+            let denStr = "";
+            
+            // Check if formatted as a fraction from our builder (top)/(bottom)
+            const fracMatch = str.match(/\((.*)\)\/\((.*)\)/);
+            if (fracMatch) {
+                numStr = fracMatch[1];
+                denStr = fracMatch[2];
+            } else if (str.includes('/')) {
+                const parts = str.split('/');
+                numStr = parts[0].replace(/[()]/g, '');
+                denStr = parts[1].replace(/[()]/g, '');
+            }
+
+            const powers = { M: 0, L: 0, T: 0, I: 0, K: 0 };
+
+            function parsePart(partStr, multiplier) {
+                if (!partStr || partStr === "1") return;
+                
+                // Matches base letters optionally followed by an exponent (e.g., L, T^-1, M^2)
+                const regex = /([MLTIK])(?:\^([+-]?\d+))?/g;
+                let match;
+                while ((match = regex.exec(partStr)) !== null) {
+                    const base = match[1];
+                    const exp = match[2] ? parseInt(match[2], 10) : 1;
+                    powers[base] += exp * multiplier;
+                }
+            }
+
+            parsePart(numStr, 1);
+            parsePart(denStr, -1);
+            
+            return powers;
+        }
+
+        let attempts = 0;
+
+        function checkAnswer() {
+            const selectedIdx = select.value;
+            if (selectedIdx === "") {
+                alert("Please select a formula first!");
+                return;
+            }
+
+            const currentFormula = physicsFormulas[selectedIdx];
+            const rawInput = parseBuilderContent();
+            
+            // Evaluate both strings to their base dimensions
+            const inputDims = getPowers(rawInput);
+            const targetDims = getPowers(currentFormula.answer);
+
+            // Compare mathematical equality
+            const isCorrect = (
+                inputDims.M === targetDims.M &&
+                inputDims.L === targetDims.L &&
+                inputDims.T === targetDims.T &&
+                inputDims.I === targetDims.I &&
+                inputDims.K === targetDims.K
+            );
+
+            const feedbackPanel = document.getElementById('feedbackPanel');
+            const status = document.getElementById('feedbackStatus');
+            const breakdown = document.getElementById('feedbackBreakdown');
+            const showBtn = document.getElementById('showAnswerBtn');
+
+            feedbackPanel.className = 'feedback ' + (isCorrect ? 'correct' : 'incorrect');
+            
+            if (isCorrect) {
+                status.textContent = "✓ Correct!";
+                breakdown.innerHTML = currentFormula.breakdown;
+                breakdown.style.display = "block";
+                showBtn.style.display = "none";
+                logScore(currentFormula.name, true);
+            } else {
+                status.textContent = "✗ Incorrect. Try again!";
+                breakdown.style.display = "none";
+                breakdown.innerHTML = currentFormula.breakdown;
+                showBtn.style.display = "inline-block";
+                logScore(currentFormula.name, false);
+            }
+        }
+
+        function showBreakdown() {
+            document.getElementById('feedbackBreakdown').style.display = "block";
+            document.getElementById('showAnswerBtn').style.display = "none";
+        }
+
+        function hideFeedback() {
+            document.getElementById('feedbackPanel').style.display = 'none';
+        }
+
+        function logScore(formulaName, isCorrect) {
+            attempts++;
+            document.getElementById('totalAttempts').textContent = attempts;
+            
+            const list = document.getElementById('scoreList');
+            const li = document.createElement('li');
+            li.className = isCorrect ? 'score-correct' : 'score-incorrect';
+            li.textContent = `${formulaName}: ${isCorrect ? 'Correct' : 'Incorrect'}`;
+            list.insertBefore(li, list.firstChild);
+        }
+    </script>
+</body>
+</html>
