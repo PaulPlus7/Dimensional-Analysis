@@ -9,9 +9,9 @@
             --primary: #2563eb;
             --success: #16a34a;
             --danger: #dc2626;
-            --bg: #f8fafc;
+            --bg: #e2e8f0;
             --surface: #ffffff;
-            --border: #e2e8f0;
+            --border: #cbd5e1;
             --text: #1e293b;
         }
         body {
@@ -22,18 +22,22 @@
             padding: 20px;
             display: flex;
             gap: 20px;
+            max-width: 1200px;
+            margin: auto;
         }
         h1, h2, h3 { margin-top: 0; }
         
         /* Layout */
-        .main-panel { flex: 3; background: var(--surface); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .side-panel { flex: 1; background: var(--surface); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .left-column { flex: 2; display: flex; flex-direction: column; gap: 20px; }
+        .right-column { flex: 1; display: flex; flex-direction: column; }
+        
+        .panel { background: var(--surface); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         
         /* Controls */
-        select { width: 100%; padding: 10px; font-size: 16px; margin-bottom: 20px; border-radius: 4px; border: 1px solid var(--border); }
+        select { width: 100%; padding: 12px; font-size: 16px; margin-bottom: 20px; border-radius: 4px; border: 2px solid var(--border); }
         
         /* Toolbar */
-        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; background: #f1f5f9; padding: 10px; border-radius: 8px; flex-wrap: wrap;}
+        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; background: #f1f5f9; padding: 15px; border-radius: 8px; flex-wrap: wrap;}
         .token { 
             padding: 10px 15px; background: var(--primary); color: white; font-weight: bold; 
             border-radius: 4px; cursor: pointer; user-select: none; border: none;
@@ -59,74 +63,98 @@
 
         /* Actions */
         .actions { margin-top: 20px; display: flex; gap: 10px; }
-        .btn { padding: 10px 20px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white;}
-        .btn-check { background: var(--success); }
-        .btn-clear { background: var(--danger); }
+        .btn { padding: 12px 24px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white;}
+        .btn-check { background: var(--primary); }
+        .btn-clear { background: #64748b; }
 
-        /* Feedback Panel */
-        .feedback { margin-top: 20px; padding: 15px; border-radius: 4px; display: none; }
-        .feedback.correct { display: block; background: #dcfce7; border: 1px solid var(--success); color: #166534; }
-        .feedback.incorrect { display: block; background: #fee2e2; border: 1px solid var(--danger); color: #991b1b; }
-        .breakdown { margin-top: 10px; font-family: monospace; background: rgba(255,255,255,0.5); padding: 10px; border-radius: 4px;}
-        .show-answer { font-size: 14px; color: var(--primary); cursor: pointer; text-decoration: underline; margin-top: 10px; display: inline-block;}
+        /* Separate Feedback Panel */
+        .feedback-panel { margin-top: 20px; padding: 20px; border-radius: 8px; display: none; text-align: center;}
+        .feedback-panel.correct { display: block; background: #dcfce7; border: 2px solid var(--success); }
+        .feedback-panel.incorrect { display: block; background: #fee2e2; border: 2px solid var(--danger); }
+        
+        .feedback-status { font-size: 24px; font-weight: bold; margin: 0 0 10px 0; }
+        .feedback-panel.correct .feedback-status { color: var(--success); }
+        .feedback-panel.incorrect .feedback-status { color: var(--danger); }
+        
+        .feedback-msg { font-size: 16px; margin-bottom: 15px; }
+        .feedback-panel.incorrect .feedback-msg { color: var(--danger); }
+        
+        .breakdown { background: rgba(255,255,255,0.7); padding: 15px; border-radius: 4px; font-family: monospace; font-size: 16px; color: #333; text-align: left; border: 1px solid #ccc;}
+        .show-answer { font-size: 12px; color: var(--primary); cursor: pointer; text-decoration: underline; margin-top: 10px; display: inline-block;}
 
-        /* Scoreboard */
-        .score-list { list-style: none; padding: 0; }
-        .score-list li { padding: 8px; margin-bottom: 5px; border-radius: 4px; font-size: 14px;}
-        .score-correct { background: #dcfce7; color: #166534; }
-        .score-incorrect { background: #fee2e2; color: #991b1b; }
+        /* Separate Score Textbox */
+        .score-textbox {
+            border: 2px solid #94a3b8;
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+            font-family: monospace;
+        }
+        .score-entry { padding: 8px; margin-bottom: 8px; border-radius: 4px; border-left: 4px solid; font-size: 14px;}
+        .entry-correct { background: #dcfce7; color: #166534; border-color: var(--success); }
+        .entry-incorrect { background: #fee2e2; color: #991b1b; border-color: var(--danger); }
     </style>
 </head>
 <body>
 
-    <div class="main-panel">
-        <h1>Dimensional Analysis Simulator</h1>
-        <p>Select a physics formula, then build its dimensional equation using the toolbar.</p>
+    <div class="left-column">
+        <div class="panel">
+            <h1>Dimensional Analysis Simulator</h1>
+            <p>Select a physics formula, then build its dimensional equation using the toolbar.</p>
 
-        <!-- Dropdown for Formulas -->
-        <select id="formulaSelect">
-            <option value="" disabled selected>Select a Physics Formula...</option>
-            <!-- Formulas injected via JS -->
-        </select>
+            <!-- Dropdown -->
+            <select id="formulaSelect">
+                <option value="" disabled selected>Select a Physics Formula...</option>
+                <!-- Formulas injected via JS -->
+            </select>
 
-        <!-- Toolbar -->
-        <div class="toolbar">
-            <button class="token" onclick="addBase('M')">M (Mass)</button>
-            <button class="token" onclick="addBase('L')">L (Length)</button>
-            <button class="token" onclick="addBase('T')">T (Time)</button>
-            <button class="token" onclick="addBase('I')">I (Current)</button>
-            <button class="token" onclick="addBase('K')">K (Temp)</button>
-            <button class="token" style="background: #0891b2;" onclick="addBase('1')">1 (None)</button>
-            <button class="token operator" onclick="addOperator('*')">*</button>
-            <button class="token operator" onclick="addExponent()">^ [Power]</button>
-            <button class="token operator" onclick="addFraction()">/ [Fraction]</button>
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <button class="token" onclick="addBase('M')">M (Mass)</button>
+                <button class="token" onclick="addBase('L')">L (Length)</button>
+                <button class="token" onclick="addBase('T')">T (Time)</button>
+                <button class="token" onclick="addBase('I')">I (Current)</button>
+                <button class="token" onclick="addBase('K')">K (Temp)</button>
+                <button class="token" style="background: #0891b2;" onclick="addBase('1')">1 (None)</button>
+                <button class="token operator" onclick="addOperator('*')">*</button>
+                <button class="token operator" onclick="addExponent()">^ [Power]</button>
+                <button class="token operator" onclick="addFraction()">/ [Fraction]</button>
+            </div>
+
+            <!-- Interactive Builder -->
+            <div class="builder-area" id="builderArea">
+                <span class="builder-hint">Click tokens above to start building...</span>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-check" onclick="checkAnswer()">Submit Output</button>
+                <button class="btn btn-clear" onclick="clearBuilder()">Clear</button>
+            </div>
         </div>
 
-        <!-- Interactive Builder -->
-        <div class="builder-area" id="builderArea">
-            <span class="builder-hint">Click tokens above to start building...</span>
-        </div>
-
-        <div class="actions">
-            <button class="btn btn-check" onclick="checkAnswer()">Check Answer</button>
-            <button class="btn btn-clear" onclick="clearBuilder()">Clear</button>
-        </div>
-
-        <!-- Feedback Area -->
-        <div id="feedbackPanel" class="feedback">
-            <h3 id="feedbackStatus"></h3>
+        <!-- Separate Feedback Panel -->
+        <div id="feedbackPanel" class="feedback-panel">
+            <h2 id="feedbackStatus" class="feedback-status"></h2>
+            <p id="feedbackMsg" class="feedback-msg"></p>
             <div id="feedbackBreakdown" class="breakdown" style="display: none;"></div>
-            <a id="showAnswerBtn" class="show-answer" style="display: none;" onclick="showBreakdown()">Wish to see the answer?</a>
+            <a id="showAnswerBtn" class="show-answer" style="display: none;" onclick="showBreakdown()">wish to see answer?</a>
         </div>
     </div>
 
-    <!-- Score Panel -->
-    <div class="side-panel">
-        <h2>Scoreboard</h2>
-        <p>Attempts: <span id="totalAttempts">0</span></p>
-        <ul id="scoreList" class="score-list">
-            <!-- Scores injected here -->
-        </ul>
+    <!-- Right Column: Score Textbox -->
+    <div class="right-column">
+        <div class="panel" style="height: 100%;">
+            <h2>Score Record</h2>
+            <p>Total Attempts: <strong id="totalAttempts">0</strong></p>
+            
+            <!-- Separate Textbox for Scores -->
+            <div id="scoreTextbox" class="score-textbox">
+                <!-- Scores injected here -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -224,7 +252,6 @@
             hideFeedback();
         }
 
-        // Extracts the visual builder content into a single parseable string
         function parseBuilderContent() {
             let resultStr = "";
             const nodes = builderArea.childNodes;
@@ -245,14 +272,12 @@
             return resultStr;
         }
 
-        // Robust Evaluator: Counts the net exponents of M, L, T, I, K
         function getPowers(str) {
             str = str.replace(/\s+/g, '').toUpperCase();
             
             let numStr = str;
             let denStr = "";
             
-            // Check if formatted as a fraction from our builder (top)/(bottom)
             const fracMatch = str.match(/\((.*)\)\/\((.*)\)/);
             if (fracMatch) {
                 numStr = fracMatch[1];
@@ -268,7 +293,6 @@
             function parsePart(partStr, multiplier) {
                 if (!partStr || partStr === "1") return;
                 
-                // Matches base letters optionally followed by an exponent (e.g., L, T^-1, M^2)
                 const regex = /([MLTIK])(?:\^([+-]?\d+))?/g;
                 let match;
                 while ((match = regex.exec(partStr)) !== null) {
@@ -296,11 +320,9 @@
             const currentFormula = physicsFormulas[selectedIdx];
             const rawInput = parseBuilderContent();
             
-            // Evaluate both strings to their base dimensions
             const inputDims = getPowers(rawInput);
             const targetDims = getPowers(currentFormula.answer);
 
-            // Compare mathematical equality
             const isCorrect = (
                 inputDims.M === targetDims.M &&
                 inputDims.L === targetDims.L &&
@@ -311,26 +333,31 @@
 
             const feedbackPanel = document.getElementById('feedbackPanel');
             const status = document.getElementById('feedbackStatus');
+            const msg = document.getElementById('feedbackMsg');
             const breakdown = document.getElementById('feedbackBreakdown');
             const showBtn = document.getElementById('showAnswerBtn');
 
-            feedbackPanel.className = 'feedback ' + (isCorrect ? 'correct' : 'incorrect');
+            // Apply styling classes
+            feedbackPanel.className = 'feedback-panel ' + (isCorrect ? 'correct' : 'incorrect');
             
             if (isCorrect) {
-                status.textContent = "✓ Correct!";
+                status.textContent = "Correct"; // Requested: "Correct" in green
+                msg.textContent = "Great job! Here is the breakdown confirming your answer:";
                 breakdown.innerHTML = currentFormula.breakdown;
                 breakdown.style.display = "block";
                 showBtn.style.display = "none";
                 logScore(currentFormula.name, true);
             } else {
-                status.textContent = "✗ Incorrect. Try again!";
+                status.textContent = "Incorrect"; // Requested: "Incorrect" in red
+                msg.textContent = "Don't worry, keep trying! Adjust your variables and submit again."; // Requested: encourage learner to try again
                 breakdown.style.display = "none";
-                breakdown.innerHTML = currentFormula.breakdown;
-                showBtn.style.display = "inline-block";
+                breakdown.innerHTML = "<strong>Correct Answer Breakdown:</strong><br>" + currentFormula.breakdown;
+                showBtn.style.display = "inline-block"; // Requested: tiny hyperlink text
                 logScore(currentFormula.name, false);
             }
         }
 
+        // Triggered when "wish to see answer?" is clicked
         function showBreakdown() {
             document.getElementById('feedbackBreakdown').style.display = "block";
             document.getElementById('showAnswerBtn').style.display = "none";
@@ -340,15 +367,22 @@
             document.getElementById('feedbackPanel').style.display = 'none';
         }
 
+        // Populates the separate score textbox
         function logScore(formulaName, isCorrect) {
             attempts++;
             document.getElementById('totalAttempts').textContent = attempts;
             
-            const list = document.getElementById('scoreList');
-            const li = document.createElement('li');
-            li.className = isCorrect ? 'score-correct' : 'score-incorrect';
-            li.textContent = `${formulaName}: ${isCorrect ? 'Correct' : 'Incorrect'}`;
-            list.insertBefore(li, list.firstChild);
+            const textbox = document.getElementById('scoreTextbox');
+            const entry = document.createElement('div');
+            entry.className = 'score-entry ' + (isCorrect ? 'entry-correct' : 'entry-incorrect');
+            
+            // Getting current time for a nice "log" feel in the textbox
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            
+            entry.innerHTML = `[${time}] <strong>${formulaName}</strong>: ${isCorrect ? 'Correct' : 'Incorrect'}`;
+            
+            // Add to the top of the textbox
+            textbox.insertBefore(entry, textbox.firstChild);
         }
     </script>
 </body>
